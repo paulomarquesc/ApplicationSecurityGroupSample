@@ -11,7 +11,7 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_D1v2"
+            "defaultValue": "Standard_D1_v2"
         },
         "adminUserName": {
             "type": "string",
@@ -27,11 +27,11 @@
         }
     },
     "variables": {
-        "nicApiVersion": "2017-06-01",
+        "nicApiVersion": "2017-09-01",
         "vmApiVersion": "2017-03-30",
         "publicIpApiVersion": "2017-11-01",
         "vnetApiVersion": "2016-03-30",
-        "nsgApiVersion": "2017-06-01",
+        "nsgApiVersion": "2017-09-01",
         "vmExtensionApiVersion": "2015-06-15",
         "asgApiVersion": "2017-10-01",
         "vnetName": "vnet",
@@ -40,19 +40,20 @@
         "subnetAdressPrefix": "10.0.0.0/24",
         "vnetId": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
         "subnetId": "[concat(variables('vnetId'),'/subnets/',variables('subnetName'))]",
-        "asgName": "webServers",
+        "asgName": "webServersAsg",
         "asgId": "[resourceId('Microsoft.Network/applicationSecurityGroups',variables('asgName'))]",
         "nsgName": "webNsg",
-        "nsgId": "[resourceId('Microsoft.Network/networkSecutiryGroups',variables('nsgName'))]",
+        "nsgId": "[resourceId('Microsoft.Network/networkSecurityGroups',variables('nsgName'))]",
         "pipName": "webServerPip",
+        "pipId":"[resourceId('Microsoft.Network/publicIPAddresses',variables('pipName'))]",
         "imageInfo": {
             "publisher": "OpenLogic",
             "offer": "CentOS",
-            "sku": "7.4",
+            "sku": "6.9",
             "version": "latest"
         },
         "vmStorageType": "Standard_LRS",
-        "scriptUrl":"https://raw.githubusercontent.com/paulomarquesc/ApplicationSecurityGroupSample/master/nginx.sh"
+        "scriptUrl": "https://raw.githubusercontent.com/paulomarquesc/ApplicationSecurityGroupSample/master/install_nginx.sh"
     },
     "resources": [
         {
@@ -75,34 +76,40 @@
             "properties": {
                 "securityRules": [
                     {
-                        "description": "Allow http traffic to web servers",
-                        "sourceAddressPrefix": "*",
-                        "sourcePortRange": "*",
-                        "direction": "Inbound",
-                        "access": "Allow",
-                        "priority": 100,
-                        "protocol": "Tcp",
-                        "destinationPortRange": "80",
-                        "destinationApplicationSecurityGroups": [
-                            {
-                                "id": "[variables('asgId')]"
-                            }
-                        ]
+                        "name": "AllowHttpAll",
+                        "properties": {
+                            "description": "Allow http traffic to web servers",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "direction": "Inbound",
+                            "access": "Allow",
+                            "priority": 100,
+                            "protocol": "Tcp",
+                            "destinationPortRange": "80",
+                            "destinationApplicationSecurityGroups": [
+                                {
+                                    "id": "[variables('asgId')]"
+                                }
+                            ]
+                        }
                     },
                     {
-                        "description": "Allow SSH traffic to web servers",
-                        "sourceAddressPrefix": "*",
-                        "sourcePortRange": "*",
-                        "direction": "Inbound",
-                        "access": "Allow",
-                        "priority": 200,
-                        "protocol": "Tcp",
-                        "destinationPortRange": "22",
-                        "destinationApplicationSecurityGroups": [
-                            {
-                                "id": "[variables('asgId')]"
-                            }
-                        ]
+                        "name": "AllowSshAll",
+                        "properties": {
+                            "description": "Allow SSH traffic to web servers",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "direction": "Inbound",
+                            "access": "Allow",
+                            "priority": 200,
+                            "protocol": "Tcp",
+                            "destinationPortRange": "22",
+                            "destinationApplicationSecurityGroups": [
+                                {
+                                    "id": "[variables('asgId')]"
+                                }
+                            ]
+                        }
                     }
                 ]
             }
@@ -161,9 +168,17 @@
                         "name": "ipconfig1",
                         "properties": {
                             "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress":{
+                                "id": "[variables('pipId')]"
+                            },
                             "subnet": {
                                 "id": "[variables('subnetId')]"
-                            }
+                            },
+                            "applicationSecurityGroups":[
+                                {
+                                    "id": "[variables('asgId')]"
+                                }
+                            ]
                         }
                     }
                 ]
@@ -214,20 +229,20 @@
             "apiVersion": "[variables('vmExtensionApiVersion')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-              "[parameters('vmName')]"
+                "[parameters('vmName')]"
             ],
             "properties": {
-              "publisher": "Microsoft.Azure.Extensions",
-              "type": "CustomScript",
-              "typeHandlerVersion": "2.0",
-              "autoUpgradeMinorVersion": true,
-              "settings": {
-                "fileUris": [
-                  "[variables('scriptUrl')]"
-                ],
-                "commandToExecute": "sh install_nginx.sh"
-              }
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "[variables('scriptUrl')]"
+                    ],
+                    "commandToExecute": "sh install_nginx.sh"
+                }
             }
-          }
+        }
     ]
 }

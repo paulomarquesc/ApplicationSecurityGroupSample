@@ -52,7 +52,7 @@
             "version": "latest"
         },
         "vmStorageType": "Standard_LRS",
-        "scriptUrl":""
+        "scriptUrl":"https://raw.githubusercontent.com/paulomarquesc/ApplicationSecurityGroupSample/master/nginx.sh"
     },
     "resources": [
         {
@@ -223,12 +223,11 @@
               "autoUpgradeMinorVersion": true,
               "settings": {
                 "fileUris": [
-                  "[concat(parameters('_artifactsLocation'),'/scripts/dns_installer_secondary.sh', parameters('_artifactsLocationSasToken'))]",
-                  "[concat(parameters('_artifactsLocation'),'/scripts/ipaddresses.txt', parameters('_artifactsLocationSasToken'))]"
+                  "[variables('scriptUrl')]"
                 ],
-                "commandToExecute": "sh dns_installer_secondary.sh"
+                "commandToExecute": "sh install_nginx.sh"
               }
             }
-          },
+          }
     ]
 }
